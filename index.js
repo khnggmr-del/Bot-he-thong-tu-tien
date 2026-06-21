@@ -1,4 +1,6 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+// ĐÃ SỬA LỖI: Thêm dòng khởi tạo client ngay tại đây để không bị lỗi 'client is not defined'
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
 
 // ==================== MESSAGE PROCESSING ====================
 client.on('messageCreate', async (message) => {
@@ -30,7 +32,7 @@ client.on('messageCreate', async (message) => {
     if (cmd === '!dangnhap') {
         if (Date.now() - p.thoiGianDangNhap < 21600000) return message.channel.send(`⏳ Quay lại sau!`).then(m => tuXoaTinNhan(m));
         p.linhThach += 150; p.thoiGianDangNhap = Date.now(); luuDuLieu();
-        return message.channel.send(`💎 Thưởng hàng ngày: **+150 Linh Thạch!**`).then(m => tuXoaTinNhan(m));
+        return message.channel.send(`💎 Thưởng hàng daily: **+150 Linh Thạch!**`).then(m => tuXoaTinNhan(m));
     }
 });
 
@@ -126,3 +128,4 @@ http.createServer((req, res) => {
 }).listen(process.env.PORT || 3000);
 
 client.login(process.env.NEW_SECRET);
+ 
