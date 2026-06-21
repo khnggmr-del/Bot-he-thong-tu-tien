@@ -1,4 +1,3 @@
-
 const { Client, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -573,5 +572,4 @@ client.on('interactionCreate', async (interaction) => {
 
 taiDuLieu(); 
 client.once('ready', () => { console.log(`✅ [THIÊN ĐẠO] Hệ thống tu tiên hoạt động trơn tru vĩnh hằng!`); });
-client.login('MTUxNzQ3NTQ5NTY1Mjg4ODYyOQ.GU2sR9.kepxu2d9YtfbUgh22BsFuEIVzQSuC1d8lhBH80');
-
+client.login(process.env.NEW_SECRET)
