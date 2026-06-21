@@ -1,6 +1,11 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb+srv://khnggmr_db_user: zjwPkVjdr4aNptDf@cluster0.xyj42bh.mongodb.net/?appName=Cluster0')
+  .then(() => console.log('Đã kết nối thành công tới MongoDB Tu Tiên!'))
+  .catch(err => console.error('Lỗi kết nối MongoDB:', err));
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
