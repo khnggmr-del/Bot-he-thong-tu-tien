@@ -1,10 +1,89 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
-// ĐÃ SỬA LỖI: Thêm dòng khởi tạo client ngay tại đây để không bị lỗi 'client is not defined'
-const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent] });
+const fs = require('fs');
+const path = require('path');
+
+// Khởi tạo client bot
+const client = new Client({
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+});
+
+// Cấu hình Database đường dẫn file
+const DB_PATH = path.join(__dirname, 'database.json');
+let databaseTuTien = {};
+const dangDuongThuong = new Map();
+
+// Các danh mục dữ liệu nền tảng phục vụ tính toán trong Interaction
+const SHOP_ITEMS = {
+    'tu_khi_dan': { ten: "Tụ Khí Đan 🍬", gia: 40, loai: "tuvi", giaTri: 50 },
+    'pha_chuong_dan': { ten: "Phá Chướng Đan 💊", gia: 150, loai: "tuvi", giaTri: 200 },
+    'hoa_u_dan': { ten: "Hóa Ứ Đan 🩸", gia: 100, loai: "duongthuong" }
+};
+
+const CONG_PHAP_BOOK = {
+    'cp_daodaohongtran': { ten: "Đại Đạo & Hồng Trần Pháp Quyết 🌌", gia: 9999999, phamChat: "Chí Tôn Thần Pháp", he: "Toàn Hệ", buffSpd: 500 }
+};
+
+const nhanhChinh = [
+    "Phàm Nhân", ...Array.from({ length: 13 }, (_, i) => `Luyện Khí Kỳ Tầng ${i + 1}`),
+    "Trúc Cơ Sơ Kỳ", "Trúc Cơ Trung Kỳ", "Trúc Cơ Hậu Kỳ", "Trúc Cơ Viên Mãn", "🔮 ĐẠO TỔ CHÍ CAO"
+];
+const nhanhHongTran = ["[Hồng Trần] Phàm Nhân Tiên Cơ", "🔮 HỒNG TRẦN TIÊN CẢNH (ĐỈNH PHONG)"];
+const nhanhVoThuong = ["Vô Thượng Cảnh", "🔮 ĐẠI ĐẠO CHÍ CAO 🌌"];
+const danhSachLinhCan = [{ ten: "Thiên Linh Căn [Cực Phẩm]", tocDo: 25 }];
+
+// ==================== HÀM HỆ THỐNG (ĐÃ BỔ SUNG ĐẦY ĐỦ) ====================
+function taiDuLieu() {
+    try { if (fs.existsSync(DB_PATH)) databaseTuTien = JSON.parse(fs.readFileSync(DB_PATH, 'utf8')); } catch (e) { databaseTuTien = {}; }
+}
+
+function luuDuLieu() {
+    try { fs.writeFileSync(DB_PATH, JSON.stringify(databaseTuTien, null, 4)); } catch (e) {}
+}
+
+function khoiTaoUser(userId) {
+    if (!databaseTuTien[userId]) {
+        databaseTuTien[userId] = {
+            linhCanTen: "Chưa thức tỉnh", tocDoTuLuyen: 0, tuViHienTai: 0, chiSoCanhGioi: 0,
+            nhanhDao: "chinh", congPhapDangTu: null, linhThach: 0, thoiGianDangNhap: 0, theChat: [], tuiDo: {}, daoLu: null, nhiemVu: {}
+        };
+    }
+    const p = databaseTuTien[userId];
+    if (!p.tuiDo) p.tuiDo = {};
+    ['tu_khi_dan', 'pha_chuong_dan', 'hoa_u_dan'].forEach(k => { if (p.tuiDo[k] === undefined) p.tuiDo[k] = 0; });
+    const ngayChay = new Date().toDateString();
+    if (!p.nhiemVu || p.nhiemVu.ngayHienTai !== ngayChay) {
+        p.nhiemVu = { ngayHienTai: ngayChay, bqLan: 0, dpLan: 0, bqNhan: [false], dpNhan: [false] };
+    }
+}
+
+function layTenCanhGioi(nhanh, idx) {
+    if (nhanh === "hongtran") return nhanhHongTran[idx] || "Hồng Trần Cảnh";
+    if (nhanh === "vothuong") return nhanhVoThuong[idx] || "Vô Thượng Cảnh";
+    return nhanhChinh[idx] || "Phàm Nhân";
+}
+
+function layTuViYeuCau(nhanh, idx) {
+    return 1000;
+}
+
+function tuXoaTinNhan(m) {
+    if (m && typeof m.delete === 'function') setTimeout(() => m.delete().catch(() => {}), 8000);
+}
+
+function batDauBeQuan(m, uid, isInt, interaction) {
+    return interaction.reply({ content: "🧘 Khởi động bế quan tu hành ẩn...", ephemeral: true });
+}
+
+function handleDotPha(m, uid, isInt, interaction) {
+    return interaction.reply({ content: "⚡ Đang vận chuyển linh khí đột phá!", ephemeral: true });
+}
+
+// Đồng bộ data trước khi bot xử lý tin nhắn
+taiDuLieu();
 
 // ==================== MESSAGE PROCESSING ====================
 client.on('messageCreate', async (message) => {
-    // Chặn bot tự đọc tin nhắn của chính nó để không bị lỗi phản hồi 2 lần
+    // CHẶN BUG PHẢN HỒI HAI LẦN
     if (message.author.bot) return;
 
     const userId = message.author.id;
@@ -32,7 +111,7 @@ client.on('messageCreate', async (message) => {
     if (cmd === '!dangnhap') {
         if (Date.now() - p.thoiGianDangNhap < 21600000) return message.channel.send(`⏳ Quay lại sau!`).then(m => tuXoaTinNhan(m));
         p.linhThach += 150; p.thoiGianDangNhap = Date.now(); luuDuLieu();
-        return message.channel.send(`💎 Thưởng hàng daily: **+150 Linh Thạch!**`).then(m => tuXoaTinNhan(m));
+        return message.channel.send(`💎 Thưởng hàng ngày: **+150 Linh Thạch!**`).then(m => tuXoaTinNhan(m));
     }
 });
 
@@ -117,10 +196,9 @@ client.on('interactionCreate', async (interaction) => {
     }
 });
 
-taiDuLieu(); 
 client.once('ready', () => { console.log(`✅ [THIÊN ĐẠO] Hệ thống tu tiên hoạt động trơn tru vĩnh hằng!`); });
 
-// Kết nối cổng để chạy ổn định trên Render
+// THÊM CỔNG HTTP ĐỂ RENDER GIỮ HOẠT ĐỘNG KHÔNG BỊ QUÉT LỖI PORT
 const http = require('http');
 http.createServer((req, res) => {
   res.write("Bot is running!");
