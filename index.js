@@ -572,4 +572,9 @@ client.on('interactionCreate', async (interaction) => {
 
 taiDuLieu(); 
 client.once('ready', () => { console.log(`✅ [THIÊN ĐẠO] Hệ thống tu tiên hoạt động trơn tru vĩnh hằng!`); });
+const http = require('http');
+http.createServer((req, res) => {
+  res.write("Bot is running!");
+  res.end();
+}).listen(process.env.PORT || 3000);
 client.login(process.env.NEW_SECRET)
