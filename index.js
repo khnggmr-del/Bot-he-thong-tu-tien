@@ -131,7 +131,6 @@ function laTrenTienDe(p) {
     return false;
 }
 
-// Thêm các hàm kiểm tra thể chất bị thiếu
 function laGiaiDoanPhamDenHoaThan(p) {
     if (p.nhanhDao !== "chinh") return false; 
     const cgTen = layTenCanhGioi(p.nhanhDao, p.chiSoCanhGioi);
@@ -327,7 +326,6 @@ taiDuLieu();
 
 // ==================== XỬ LÝ LỆNH CHAT ====================
 client.on('messageCreate', async (message) => {
-    // Chặn phản hồi lặp lại 2 lần từ bot
     if (message.author.bot) return;
     const cmd = message.content.toLowerCase().trim();
     const userId = message.author.id;
@@ -346,7 +344,10 @@ client.on('messageCreate', async (message) => {
     }
 
     if (!cmd.startsWith('!')) return;
+    
+    // ĐÃ SỬA: Đưa lệnh xóa tin nhắn lên đầu tiên để đảm bảo thực thi ngay lập tức trước khi gặp lệnh return
     setTimeout(() => message.delete().catch(() => {}), 5000);
+
     khoiTaoUser(userId);
     const p = databaseTuTien[userId];
 
@@ -456,18 +457,20 @@ client.on('interactionCreate', async (interaction) => {
     const p = databaseTuTien[userId];
 
     if (interaction.isStringSelectMenu()) {
+        // ĐÃ SỬA: Toàn bộ phản hồi chọn đường tu dưới đây đã được gài "ephemeral: true" để ẩn tin nhắn
         if (interaction.customId === 'lua_chon_dai_dao') {
             const pathSelected = interaction.values[0];
             if (pathSelected === 'path_hongtran') {
                 p.nhanhDao = "hongtran"; p.chiSoCanhGioi = 0; p.tuViHienTai = 0;
-                await interaction.reply({ content: `🌸 Đạo hữu bước vào **Hồng Trần Tiên**.` });
+                await interaction.reply({ content: `🌸 Đạo hữu bước vào **Hồng Trần Tiên**.`, ephemeral: true });
             } else if (pathSelected === 'path_vothuong') {
                 p.nhanhDao = "vothuong"; p.chiSoCanhGioi = 0; p.tuViHienTai = 0;
-                await interaction.reply({ content: `🌌 Đạo hữu tiến vào **Vô Thượng Cảnh**!` });
+                await interaction.reply({ content: `🌌 Đạo hữu tiến vào **Vô Thượng Cảnh**!`, ephemeral: true });
             }
             luuDuLieu(); return;
         }
 
+        // ĐÃ SỬA: Chuyển phản hồi mua đan dược thành dạng ẩn
         if (interaction.customId === 'menu_shop_items') {
             const itemId = interaction.values[0]; const item = SHOP_ITEMS[itemId];
             if (p.linhThach < item.gia) return interaction.reply({ content: `❌ Không đủ Linh Thạch!`, ephemeral: true });
@@ -479,6 +482,7 @@ client.on('interactionCreate', async (interaction) => {
             return interaction.reply({ content: `🛍️ Mua thành công **${item.ten}**!`, ephemeral: true });
         }
 
+        // ĐÃ SỬA: Chuyển phản hồi mua công pháp thành dạng ẩn
         if (interaction.customId === 'menu_shop_congphap') {
             const cpId = interaction.values[0]; const cpItem = CONG_PHAP_BOOK[cpId];
             if (p.linhThach < cpItem.gia) return interaction.reply({ content: `❌ Không đủ Linh Thạch!`, ephemeral: true });
@@ -511,9 +515,20 @@ client.on('interactionCreate', async (interaction) => {
 
     if (interaction.isButton()) {
         const id = interaction.customId; const maxTv = layTuViYeuCau(p.nhanhDao, p.chiSoCanhGioi);
-        if (id === 'use_tkd' && p.tuiDo.tu_khi_dan > 0) { p.tuiDo.tu_khi_dan--; p.tuViHienTai = Math.min(p.tuViHienTai + 50, maxTv); luuDuLieu(); }
-        else if (id === 'use_pcd' && p.tuiDo.pha_chuong_dan > 0) { p.tuiDo.pha_chuong_dan--; p.tuViHienTai = Math.min(p.tuViHienTai + 200, maxTv); luuDuLieu(); }
-        else if (id === 'use_hud' && p.tuiDo.hoa_u_dan > 0) { p.tuiDo.hoa_u_dan--; dangDuongThuong.delete(userId); luuDuLieu(); return interaction.reply({ content: `🩹 Kinh mạch đã phục hồi chấn thương!`, ephemeral: true }); }
+        
+        // ĐÃ SỬA: Gài chế độ ẩn (ephemeral: true) cho tất cả hành động bấm nút cắn thuốc và nhận thưởng nhiệm vụ
+        if (id === 'use_tkd' && p.tuiDo.tu_khi_dan > 0) { 
+            p.tuiDo.tu_khi_dan--; p.tuViHienTai = Math.min(p.tuViHienTai + 50, maxTv); luuDuLieu(); 
+            return interaction.reply({ content: `🍬 Đạo hữu nuốt vào Tụ Khí Dan, nhận 50 Tu Vi!`, ephemeral: true });
+        }
+        else if (id === 'use_pcd' && p.tuiDo.pha_chuong_dan > 0) { 
+            p.tuiDo.pha_chuong_dan--; p.tuViHienTai = Math.min(p.tuViHienTai + 200, maxTv); luuDuLieu(); 
+            return interaction.reply({ content: `💊 Đạo hữu nuốt vào Phá Chướng Đan, nhận 200 Tu Vi!`, ephemeral: true });
+        }
+        else if (id === 'use_hud' && p.tuiDo.hoa_u_dan > 0) { 
+            p.tuiDo.hoa_u_dan--; dangDuongThuong.delete(userId); luuDuLieu(); 
+            return interaction.reply({ content: `🩹 Kinh mạch đã hoàn toàn phục hồi chấn thương!`, ephemeral: true }); 
+        }
         else if (id === 'nv_bq') { p.linhThach += 40; p.nhiemVu.bqNhan[0] = true; luuDuLieu(); return interaction.reply({ content: ` Thưởng +40 Linh Thạch!`, ephemeral: true }); }
         else if (id === 'nv_dp') { p.linhThach += 60; p.nhiemVu.dpNhan[0] = true; luuDuLieu(); return interaction.reply({ content: ` Thưởng +60 Linh Thạch!`, ephemeral: true }); }
         
